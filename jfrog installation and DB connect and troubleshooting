@@ -1,0 +1,105 @@
+wget https://releases.jfrog.io/artifactory/bintray-artifactory/org/artifactory/oss/jfrog-artifactory-oss/7.84.15/jfrog-artifactory-oss-7.84.15-linux.tar.gz
+tar zxvf jfrog-artifactory-oss-7.111.10-linux.tar.gz
+cd jfrog-artifactory-oss-7.111.10/app/bin
+./artifactory.sh start
+
+
+cd /home/oracle/artifactory-oss-7.111.10/var/etc/security/
+openssl rand -hex 32 > /home/oracle/artifactory-oss-7.111.10/var/etc/security/master.key
+chmod 600 /home/oracle/artifactory-oss-7.111.10/var/etc/security/master.key
+cat /home/oracle/artifactory-oss-7.111.10/var/etc/security/master.key
+adf3b0f56e1f41e6e67b1fd7c66de91b7a3247cd92e59464c68d26cf178e90de
+cp /home/oracle/artifactory-oss-7.111.10/var/etc/security/master.key ~/master.key.backup
+
+cp /home/oracle/artifactory-oss-7.111.10/var/etc/security/master.key ~/master.key.backup
+tail -n 100 /home/oracle/artifactory-oss-7.111.10/var/log/router-service.log
+tail -n 100 /home/oracle/artifactory-oss-7.111.10/var/log/event-service.log
+tail -n 100 /home/oracle/artifactory-oss-7.111.10/var/log/frontend-service.log
+tail -n 100 /home/oracle/artifactory-oss-7.111.10/var/log/observability-service.log
+
+openssl rand -hex 32 > /home/oracle/artifactory-oss-7.111.10/var/etc/security/join.key
+chmod 600 /home/oracle/artifactory-oss-7.111.10/var/etc/security/join.key
+
+vi /home/oracle/artifactory-oss-7.111.10/var/etc/system.yaml
+configVersion: 1
+
+shared:
+  database:
+    type: postgresql
+    driver: org.postgresql.Driver
+    url: jdbc:postgresql://192.168.14.129:5432/artifactory?sslmode=disable
+    username: venkat_user
+    password: venkat_user
+    pool:
+      maxOpenConnections: 50
+      maxIdleConnections: 10
+
+access:
+  security:
+    bootstrapCreds:
+      username: admin
+      password: password
+chmod 600 /home/oracle/artifactory-oss-7.111.10/var/etc/system.yaml
+
+
+wget https://jdbc.postgresql.org/download/postgresql-42.7.2.jar
+mkdir -p /home/oracle/artifactory-oss-7.111.10/var/bootstrap/artifactory/tomcat/lib/
+mv postgresql-42.7.2.jar /home/oracle/artifactory-oss-7.111.10/var/bootstrap/artifactory/tomcat/lib/
+
+curl http://192.168.14.145:8046/access/api/v1/system/ping
+
+ /home/oracle/artifactory-oss-7.111.10/var/etc/security/join.key
+4ea122.aesgcm256.Ml9B1d01l-AtQpdi3rNpLWSDjRAta8gPUK_-dHxud1TbJIFzWVggzERElVUNMYJ7ElaNCf1uhdv-oYGs24JLUf2HiYNskQ10AaDpVYL0vu-6gJ7ABzyAR0FfQW_m
+
+/home/oracle/artifactory-oss-7.111.10/var/etc/security/master.key
+1876a492275dd71cf3fa960d8a812f375946e9c7eaff0596f80b085ed6164142
+
+
+psql -U postgres
+DROP DATABASE artifactory;
+CREATE DATABASE artifactory;
+ls -lh /home/oracle/artifactory-oss-7.111.10/app/access/tomcat/webapps/access.war
+cat /home/oracle/artifactory-oss-7.111.10/var/etc/system.yaml | grep shared.database
+vim /home/oracle/artifactory-oss-7.111.10/app/access/tomcat/conf/server.xml
+changed host: 0.0.0.0
+vim /home/oracle/artifactory-oss-7.111.10/app/access/tomcat/conf/context.xml
+changed host: 0.0.0.0
+ 
+cd /home/oracle/artifactory-oss-7.111.10/app/bin/
+./artifactory.sh stop
+./artifactory.sh start
+netstat -tulnp | grep 8046
+http://192.168.14.145:8082/ui/
+admin
+password
+
+in DB server:
+CREATE DATABASE artifactory;
+postgres=# ALTER DATABASE artifactory OWNER TO venkat_user;
+
+ALTER DATABASE
+postgres=# GRANT ALL PRIVILEGES ON DATABASE artifactory TO venkat_user;
+
+GRANT
+postgres=# GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO venkat_user;
+
+GRANT
+postgres=# GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO venkat_user;
+
+GRANT
+postgres=# GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO venkat_user;
+
+GRANT
+postgres=# ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO venkat_user;
+
+ALTER DEFAULT PRIVILEGES
+postgres=# LTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO venkat_user;
+
+ERROR:  syntax error at or near "LTER"
+LINE 1: LTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUEN...
+        ^
+postgres=# ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO venkat_user;
+
+ALTER DEFAULT PRIVILEGES
+
+ALTER SCHEMA public OWNER TO venkat_user;
