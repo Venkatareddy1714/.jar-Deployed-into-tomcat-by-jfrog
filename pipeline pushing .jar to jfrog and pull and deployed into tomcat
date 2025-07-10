@@ -1,0 +1,86 @@
+pipeline {
+    agent any
+
+    environment {
+        ARTIFACTORY_URL = 'http://192.168.14.145:8082/'
+        ARTIFACTORY_REPO = 'example-repo-local'
+        JAR_NAME = 'upi-acq-vo-1.0.121.UAT.jar'
+        REMOTE_PATH = '/opt/tomcat/webapps'
+        TOMCAT_HOST = '192.168.14.146'         
+        SSH_USER = 'oracle'                   
+    }
+
+    stages {
+        stage('Prepare JAR') {
+            steps {
+                sh '''
+                    cp /home/oracle/${JAR_NAME} .
+                    ls -l ${JAR_NAME}
+                '''
+            }
+        }
+
+        stage('Upload to JFrog') {
+            steps {
+                withCredentials([
+                    usernamePassword(credentialsId: 'JFROG_CREDENTIALS', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')
+                ]) {
+                    sh '''
+                        jf config add jfrog-server \
+                            --url=$ARTIFACTORY_URL \
+                            --user=$USERNAME \
+                            --password=$PASSWORD \
+                            --interactive=false \
+                            --overwrite=true
+
+                        jf rt upload "${JAR_NAME}" "$ARTIFACTORY_REPO/${JAR_NAME}" \
+                            --server-id=jfrog-server
+                    '''
+                }
+            }
+        }
+
+        stage('Download from JFrog') {
+            steps {
+                withCredentials([
+                    usernamePassword(credentialsId: 'JFROG_CREDENTIALS', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')
+                ]) {
+                    sh '''
+                        jf config use jfrog-server
+                        jf rt download "$ARTIFACTORY_REPO/${JAR_NAME}" "${JAR_NAME}" --server-id=jfrog-server
+                    '''
+                }
+            }
+        }
+
+        stage('Copy to Tomcat Server') {
+            steps {
+                sshagent(credentials: ['oracle']) {
+                    sh '''
+                        scp -o StrictHostKeyChecking=no ${JAR_NAME} ${SSH_USER}@${TOMCAT_HOST}:${REMOTE_PATH}
+                    '''
+                }
+            }
+        }
+
+        stage('Restart Tomcat') { 
+            steps {
+                sshagent(credentials: ['oracle']) {
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no ${SSH_USER}@${TOMCAT_HOST} '
+                            /home/oracle/apache-tomcat-9.0.107/bin/shutdown.sh || true
+                            sleep 5
+                            /home/oracle/apache-tomcat-9.0.107/bin/startup.sh
+                        '
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline completed.'
+        }
+    }
+}
