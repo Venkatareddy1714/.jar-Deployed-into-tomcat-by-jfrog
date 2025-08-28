@@ -1,0 +1,103 @@
+pipeline {
+    agent any
+
+    environment {
+        ARTIFACTORY_URL = 'http://192.168.14.145:8082/'
+        ARTIFACTORY_REPO = 'example-repo-local'
+        REMOTE_PATH = '/opt/tomcat/webapps'
+        TOMCAT_HOST = '192.168.14.146'
+        SSH_USER = 'oracle'
+        JAR_FILES = 'upi-acq-vo-1.0.121.UAT.jar,upi-acq-vo-1.0.122.UAT.jar,upi-acq-vo-1.0.123.UAT.jar'
+    }
+
+    stages {
+        stage('Prepare JARs') {
+            steps {
+                script {
+                    def jars = JAR_FILES.split(",")
+                    jars.each { jar ->
+                        sh """
+                            cp /home/oracle/${jar} .
+                            ls -l ${jar}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Upload to JFrog') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'JFROG_CREDENTIALS', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                    script {
+                        def jars = JAR_FILES.split(",")
+                        sh """
+                            jf config add jfrog-server \
+                                --url=$ARTIFACTORY_URL \
+                                --user=$USERNAME \
+                                --password=$PASSWORD \
+                                --interactive=false \
+                                --overwrite=true
+                        """
+                        jars.each { jar ->
+                            sh """
+                                jf rt upload "${jar}" "$ARTIFACTORY_REPO/${jar}" \
+                                    --server-id=jfrog-server
+                            """
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Download from JFrog') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'JFROG_CREDENTIALS', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                    script {
+                        def jars = JAR_FILES.split(",")
+                        sh "jf config use jfrog-server"
+                        jars.each { jar ->
+                            sh """
+                                jf rt download "$ARTIFACTORY_REPO/${jar}" "${jar}" --server-id=jfrog-server
+                            """
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Copy to Tomcat Server') {
+            steps {
+                sshagent(credentials: ['oracle']) {
+                    script {
+                        def jars = JAR_FILES.split(",")
+                        jars.each { jar ->
+                            sh """
+                                scp -o StrictHostKeyChecking=no ${jar} ${SSH_USER}@${TOMCAT_HOST}:${REMOTE_PATH}
+                            """
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Restart Tomcat') {
+            steps {
+                sshagent(credentials: ['oracle']) {
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no ${SSH_USER}@${TOMCAT_HOST} '
+                            /home/oracle/apache-tomcat-9.0.107/bin/shutdown.sh || true
+                            sleep 5
+                            /home/oracle/apache-tomcat-9.0.107/bin/startup.sh
+                        '
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline completed.'
+        }
+    }
+}
